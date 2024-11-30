@@ -1,0 +1,40 @@
+import socket
+import struct
+import time
+from collections import deque
+
+# Basic network traffic analysis for potential malicious activity
+def analyze_traffic(packet):
+    # Extract relevant data from the packet (source/destination IP, port, protocol, payload)
+    source_ip = packet[0][0]
+    dest_ip = packet[0][1]
+    source_port = packet[1][0]
+    dest_port = packet[1][1]
+    protocol = packet[0][2]
+    payload = packet[2] 
+
+    # Simple checks for known attack patterns:
+    if protocol == 'TCP' and dest_port == 22 and 'ssh-keygen' in str(payload):  # Potential SSH bruteforce
+        return "Suspicious SSH activity detected"
+    elif protocol == 'UDP' and dest_port == 53 and len(payload) > 1000:  # Large UDP packet to DNS server
+        return "Possible DDoS attempt" 
+    else:
+        # More advanced analysis could involve anomaly detection using machine learning models
+        return None
+
+# Function to capture network traffic
+def capture_traffic(interface):
+    # Use a library like Scapy to capture network traffic
+    s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
+    s.bind((interface, 0))
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 2**20)  # Set buffer size
+    while True:
+        packet = s.recvfrom(65535)
+        result = analyze_traffic(packet)
+        if result:
+            print(f"Alert: {result}, Source: {packet[0][0]}, Destination: {packet[0][1]}") 
+            # Log the potential attack details
+            
+# Example usage
+if __name__ == "__main__":
+    capture_traffic("eth0")  # Replace "eth0" with your network interface 
